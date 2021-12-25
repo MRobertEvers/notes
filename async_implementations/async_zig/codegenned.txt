@@ -1,0 +1,606 @@
+panic:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 16
+        mov     qword ptr [rbp - 8], rsi
+        call    zig_panic@PLT
+
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        movabs  rax, offset amain
+        mov     qword ptr [rbp - 32], rax
+        mov     qword ptr [rbp - 24], 0
+        mov     qword ptr [rbp - 16], 0
+        lea     rdi, [rbp - 32]
+        mov     rsi, -3
+        call    amain
+        add     rsp, 32
+        pop     rbp
+        ret
+
+amain:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 96
+        mov     qword ptr [rbp - 48], rsi
+        mov     qword ptr [rbp - 40], rdi
+        mov     rax, rdi
+        add     rax, 24
+        mov     qword ptr [rbp - 32], rax
+        mov     rax, rdi
+        add     rax, 16
+        mov     qword ptr [rbp - 24], rax
+        mov     rax, rdi
+        add     rax, 8
+        mov     qword ptr [rbp - 16], rax
+        mov     rax, qword ptr [rdi + 8]
+        mov     qword ptr [rbp - 8], rax
+        test    rax, rax
+        je      .LBB2_1
+        jmp     .LBB2_20
+.LBB2_20:
+        mov     rax, qword ptr [rbp - 8]
+        sub     rax, 1
+        je      .LBB2_3
+        jmp     .LBB2_21
+.LBB2_21:
+        mov     rax, qword ptr [rbp - 8]
+        sub     rax, 2
+        je      .LBB2_4
+        jmp     .LBB2_2
+.LBB2_1:
+        mov     rax, qword ptr [rbp - 16]
+        mov     qword ptr [rax], 1
+        mov     qword ptr [rip + frame], offset func
+        mov     edi, offset frame
+        mov     qword ptr [rbp - 72], rdi
+        mov     qword ptr [rip + frame+8], 0
+        mov     qword ptr [rip + frame+16], 0
+        mov     qword ptr [rip + frame+24], offset frame+40
+        mov     qword ptr [rip + frame+48], offset a
+        mov     byte ptr [rip + frame+56], 4
+        mov     byte ptr [rip + frame+57], 5
+        mov     rsi, -3
+        call    func
+        mov     rdi, qword ptr [rbp - 72]
+        mov     rax, qword ptr [rip + frame]
+        mov     rsi, -1
+        call    rax
+        mov     rcx, qword ptr [rbp - 32]
+        mov     rdx, qword ptr [rbp - 16]
+        mov     rax, qword ptr [rbp - 40]
+        mov     qword ptr [rcx], offset frame
+        mov     rcx, qword ptr [rcx]
+        mov     qword ptr [rbp - 64], rcx
+        mov     qword ptr [rdx], 2
+        mov     qword ptr [rcx + 32], offset blarg
+        xchg    qword ptr [rcx + 16], rax
+        mov     qword ptr [rbp - 56], rax
+        sub     rax, -1
+        je      .LBB2_8
+        jmp     .LBB2_22
+.LBB2_22:
+        mov     rax, qword ptr [rbp - 56]
+        test    rax, rax
+        je      .LBB2_7
+        jmp     .LBB2_6
+.LBB2_2:
+        movabs  rdi, offset __unnamed_1
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_3:
+        movabs  rdi, offset __unnamed_2
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_4:
+        mov     rax, qword ptr [rbp - 48]
+        mov     rcx, qword ptr [rbp - 16]
+        mov     qword ptr [rcx], 1
+        cmp     rax, -2
+        je      .LBB2_10
+        jmp     .LBB2_9
+.LBB2_5:
+        mov     al, byte ptr [a]
+        mov     byte ptr [rbp - 74], al
+        mov     ax, word ptr [blarg]
+        mov     cl, al
+        mov     byte ptr [rbp - 73], cl
+        movzx   ecx, cl
+        cmp     ax, cx
+        je      .LBB2_11
+        jmp     .LBB2_12
+.LBB2_6:
+        movabs  rdi, offset __unnamed_3
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_7:
+        add     rsp, 96
+        pop     rbp
+        ret
+.LBB2_8:
+        mov     rax, qword ptr [rbp - 64]
+        mov     rax, qword ptr [rax + 24]
+        mov     ax, word ptr [rax]
+        mov     word ptr [blarg], ax
+        jmp     .LBB2_5
+.LBB2_9:
+        movabs  rdi, offset __unnamed_4
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_10:
+        jmp     .LBB2_5
+.LBB2_11:
+        mov     cl, byte ptr [rbp - 73]
+        mov     al, byte ptr [rbp - 74]
+        add     al, cl
+        mov     byte ptr [rbp - 75], al
+        setb    al
+        test    al, 1
+        jne     .LBB2_13
+        jmp     .LBB2_14
+.LBB2_12:
+        movabs  rdi, offset __unnamed_5
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_13:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_14:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 16]
+        mov     dl, byte ptr [rbp - 75]
+        mov     byte ptr [a], dl
+        mov     qword ptr [rcx], -1
+        mov     rax, qword ptr [rax]
+        mov     qword ptr [rbp - 88], rax
+.LBB2_15:
+        mov     rax, qword ptr [rbp - 88]
+        mov     rcx, qword ptr [rbp - 24]
+        mov     rdx, rax
+        not     rdx
+        lock            cmpxchg qword ptr [rcx], rdx
+        sete    cl
+        mov     qword ptr [rbp - 96], rax
+        test    cl, 1
+        mov     qword ptr [rbp - 88], rax
+        jne     .LBB2_16
+        jmp     .LBB2_15
+.LBB2_16:
+        mov     rax, qword ptr [rbp - 96]
+        sub     rax, -1
+        je      .LBB2_17
+        jmp     .LBB2_23
+.LBB2_23:
+        mov     rax, qword ptr [rbp - 96]
+        test    rax, rax
+        je      .LBB2_18
+        jmp     .LBB2_19
+.LBB2_17:
+        movabs  rdi, offset __unnamed_7
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB2_18:
+        add     rsp, 96
+        pop     rbp
+        ret
+.LBB2_19:
+        mov     rax, qword ptr [rbp - 96]
+        mov     rdi, rax
+        mov     rax, qword ptr [rax]
+        mov     rsi, -2
+        add     rsp, 96
+        pop     rbp
+        jmp     rax
+
+func:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 192
+        mov     qword ptr [rbp - 72], rdi
+        mov     rax, rdi
+        add     rax, 48
+        mov     qword ptr [rbp - 64], rax
+        mov     rax, rdi
+        add     rax, 56
+        mov     qword ptr [rbp - 56], rax
+        mov     rax, rdi
+        add     rax, 57
+        mov     qword ptr [rbp - 48], rax
+        mov     rax, rdi
+        add     rax, 58
+        mov     qword ptr [rbp - 40], rax
+        mov     rax, rdi
+        add     rax, 16
+        mov     qword ptr [rbp - 32], rax
+        mov     rax, rdi
+        add     rax, 8
+        mov     qword ptr [rbp - 24], rax
+        mov     rax, qword ptr [rdi + 8]
+        mov     qword ptr [rbp - 16], rax
+        mov     rcx, qword ptr [rdi + 24]
+        mov     qword ptr [rbp - 8], rcx
+        sub     rax, 6
+        ja      .LBB3_2
+        mov     rax, qword ptr [rbp - 16]
+        mov     rax, qword ptr [8*rax + .LJTI3_0]
+        jmp     rax
+.LBB3_1:
+        mov     rax, qword ptr [rbp - 64]
+        mov     rcx, qword ptr [rbp - 40]
+        mov     rdx, qword ptr [rbp - 24]
+        mov     qword ptr [rdx], 1
+        mov     byte ptr [rcx], 127
+        mov     rax, qword ptr [rax]
+        mov     qword ptr [rbp - 88], rax
+        mov     al, byte ptr [rax]
+        add     al, 6
+        mov     byte ptr [rbp - 73], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_4
+        jmp     .LBB3_5
+.LBB3_2:
+        movabs  rdi, offset __unnamed_1
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_3:
+        movabs  rdi, offset __unnamed_2
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_4:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_5:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 88]
+        mov     dl, byte ptr [rbp - 73]
+        mov     byte ptr [rcx], dl
+        mov     qword ptr [rax], 2
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_6:
+        mov     rax, qword ptr [rbp - 64]
+        mov     rcx, qword ptr [rbp - 24]
+        mov     qword ptr [rcx], 1
+        mov     rax, qword ptr [rax]
+        mov     qword ptr [rbp - 104], rax
+        mov     al, byte ptr [rax]
+        add     al, 2
+        mov     byte ptr [rbp - 89], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_7
+        jmp     .LBB3_8
+.LBB3_7:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_8:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 104]
+        mov     dl, byte ptr [rbp - 89]
+        mov     byte ptr [rcx], dl
+        mov     qword ptr [rax], 3
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_9:
+        mov     rcx, qword ptr [rbp - 48]
+        mov     rax, qword ptr [rbp - 56]
+        mov     rdx, qword ptr [rbp - 64]
+        mov     rsi, qword ptr [rbp - 24]
+        mov     qword ptr [rsi], 1
+        mov     rdx, qword ptr [rdx]
+        mov     qword ptr [rbp - 120], rdx
+        mov     dl, byte ptr [rdx]
+        mov     byte ptr [rbp - 106], dl
+        mov     al, byte ptr [rax]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 105], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_10
+        jmp     .LBB3_11
+.LBB3_10:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_11:
+        mov     rcx, qword ptr [rbp - 40]
+        mov     al, byte ptr [rbp - 105]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 121], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_12
+        jmp     .LBB3_13
+.LBB3_12:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_13:
+        mov     cl, byte ptr [rbp - 121]
+        mov     al, byte ptr [rbp - 106]
+        add     al, cl
+        mov     byte ptr [rbp - 122], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_14
+        jmp     .LBB3_15
+.LBB3_14:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_15:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 120]
+        mov     dl, byte ptr [rbp - 122]
+        mov     byte ptr [rcx], dl
+        mov     qword ptr [rax], 4
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_16:
+        mov     rcx, qword ptr [rbp - 48]
+        mov     rax, qword ptr [rbp - 56]
+        mov     rdx, qword ptr [rbp - 64]
+        mov     rsi, qword ptr [rbp - 24]
+        mov     qword ptr [rsi], 1
+        mov     rdx, qword ptr [rdx]
+        mov     qword ptr [rbp - 136], rdx
+        mov     dl, byte ptr [rdx]
+        mov     byte ptr [rbp - 124], dl
+        mov     al, byte ptr [rax]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 123], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_17
+        jmp     .LBB3_18
+.LBB3_17:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_18:
+        mov     rcx, qword ptr [rbp - 40]
+        mov     al, byte ptr [rbp - 123]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 137], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_19
+        jmp     .LBB3_20
+.LBB3_19:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_20:
+        mov     cl, byte ptr [rbp - 137]
+        mov     al, byte ptr [rbp - 124]
+        add     al, cl
+        mov     byte ptr [rbp - 138], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_21
+        jmp     .LBB3_22
+.LBB3_21:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_22:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 136]
+        mov     dl, byte ptr [rbp - 138]
+        mov     byte ptr [rcx], dl
+        mov     qword ptr [rax], 5
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_23:
+        mov     rcx, qword ptr [rbp - 48]
+        mov     rax, qword ptr [rbp - 56]
+        mov     rdx, qword ptr [rbp - 64]
+        mov     rsi, qword ptr [rbp - 24]
+        mov     qword ptr [rsi], 1
+        mov     rdx, qword ptr [rdx]
+        mov     qword ptr [rbp - 152], rdx
+        mov     dl, byte ptr [rdx]
+        mov     byte ptr [rbp - 140], dl
+        mov     al, byte ptr [rax]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 139], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_24
+        jmp     .LBB3_25
+.LBB3_24:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_25:
+        mov     rcx, qword ptr [rbp - 40]
+        mov     al, byte ptr [rbp - 139]
+        add     al, byte ptr [rcx]
+        mov     byte ptr [rbp - 153], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_26
+        jmp     .LBB3_27
+.LBB3_26:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_27:
+        mov     cl, byte ptr [rbp - 153]
+        mov     al, byte ptr [rbp - 140]
+        add     al, cl
+        mov     byte ptr [rbp - 154], al
+        setb    al
+        test    al, 1
+        jne     .LBB3_28
+        jmp     .LBB3_29
+.LBB3_28:
+        movabs  rdi, offset __unnamed_6
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_29:
+        mov     rax, qword ptr [rbp - 24]
+        mov     rcx, qword ptr [rbp - 152]
+        mov     dl, byte ptr [rbp - 154]
+        mov     byte ptr [rcx], dl
+        mov     qword ptr [rax], 6
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_30:
+        mov     rax, qword ptr [rbp - 32]
+        mov     rcx, qword ptr [rbp - 24]
+        mov     rdx, qword ptr [rbp - 8]
+        mov     rsi, qword ptr [rbp - 64]
+        mov     qword ptr [rcx], 1
+        mov     rsi, qword ptr [rsi]
+        movzx   esi, byte ptr [rsi]
+        mov     word ptr [rdx], si
+        mov     qword ptr [rcx], -1
+        mov     rax, qword ptr [rax]
+        mov     qword ptr [rbp - 168], rax
+.LBB3_31:
+        mov     rax, qword ptr [rbp - 168]
+        mov     rcx, qword ptr [rbp - 32]
+        mov     rdx, rax
+        not     rdx
+        lock            cmpxchg qword ptr [rcx], rdx
+        sete    cl
+        mov     qword ptr [rbp - 176], rax
+        test    cl, 1
+        mov     qword ptr [rbp - 168], rax
+        jne     .LBB3_32
+        jmp     .LBB3_31
+.LBB3_32:
+        mov     rax, qword ptr [rbp - 176]
+        sub     rax, -1
+        je      .LBB3_33
+        jmp     .LBB3_39
+.LBB3_39:
+        mov     rax, qword ptr [rbp - 176]
+        test    rax, rax
+        je      .LBB3_34
+        jmp     .LBB3_35
+.LBB3_33:
+        movabs  rdi, offset __unnamed_7
+        xor     eax, eax
+        mov     esi, eax
+        call    panic
+.LBB3_34:
+        add     rsp, 192
+        pop     rbp
+        ret
+.LBB3_35:
+        mov     rax, qword ptr [rbp - 72]
+        mov     rax, qword ptr [rax + 32]
+        mov     qword ptr [rbp - 184], rax
+        cmp     rax, 0
+        je      .LBB3_37
+        mov     rax, qword ptr [rbp - 184]
+        mov     rcx, qword ptr [rbp - 8]
+        mov     cx, word ptr [rcx]
+        mov     word ptr [rax], cx
+.LBB3_37:
+        mov     rax, qword ptr [rbp - 176]
+        mov     rdi, rax
+        mov     rax, qword ptr [rax]
+        mov     rsi, -2
+        add     rsp, 192
+        pop     rbp
+        jmp     rax
+.LJTI3_0:
+        .quad   .LBB3_1
+        .quad   .LBB3_3
+        .quad   .LBB3_6
+        .quad   .LBB3_9
+        .quad   .LBB3_16
+        .quad   .LBB3_23
+        .quad   .LBB3_30
+
+        .quad   panic
+
+        .byte   0
+
+        .byte   2
+
+a:
+        .byte   5
+
+__unnamed_8:
+        .asciz  "resumed an async function which already returned"
+
+__unnamed_1:
+        .quad   __unnamed_8
+        .quad   48
+
+__unnamed_9:
+        .asciz  "resumed a non-suspended function"
+
+__unnamed_2:
+        .quad   __unnamed_9
+        .quad   32
+
+__unnamed_10:
+        .asciz  "async function awaited twice"
+
+__unnamed_3:
+        .quad   __unnamed_10
+        .quad   28
+
+__unnamed_11:
+        .asciz  "awaiting function resumed"
+
+__unnamed_4:
+        .quad   __unnamed_11
+        .quad   25
+
+__unnamed_12:
+        .asciz  "integer cast truncated bits"
+
+__unnamed_5:
+        .quad   __unnamed_12
+        .quad   27
+
+__unnamed_13:
+        .asciz  "integer overflow"
+
+__unnamed_6:
+        .quad   __unnamed_13
+        .quad   16
+
+__unnamed_14:
+        .asciz  "async function returned twice"
+
+__unnamed_7:
+        .quad   __unnamed_14
+        .quad   29
