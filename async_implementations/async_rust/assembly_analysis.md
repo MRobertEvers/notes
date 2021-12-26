@@ -71,7 +71,11 @@ The above rust produces the following assembly.
 
 Note: Call codegen in `do_call` method in rust compiler code https://github.com/rust-lang/rust/blob/51e8031e14a899477a5e2d78ce461cab31123354/compiler/rustc_codegen_ssa/src/mir/block.rs#L125; which is basically a wrapper around llvm backend, https://github.com/rust-lang/rust/blob/51e8031e14a899477a5e2d78ce461cab31123354/compiler/rustc_codegen_llvm/src/builder.rs#L217.
 
-The poll method is similar to zig's `resume` builtin, but the closure is provided explicitly by the code writer. The context object is solely to gain access to the waker object in the `poll` call. It seems to me that access to the waker inside the `poll` function is usually unecessary. The waker has a is called by some other part of the code with the intention that it will schedule an executor (or something), to call `poll` again. (TODO: Why does `poll` need access to waker?)
+The poll method is similar to zig's `resume` builtin, but the closure is provided explicitly by the code writer. The context object is solely to gain access to the waker object in the `poll` call. It seems to me that access to the waker inside the `poll` function is usually unecessary. The waker has a is called by some other part of the code with the intention that it will schedule an executor (or something), to call `poll` again. (TODO: Why does `poll` need access to waker?) My guess is that the poll function can gain some information about the state of the awaiting thing, and then give the waker a hint about when to call again?
+
+Additionally, if poll returns `Poll::Ready`, then execution continues directly after the await, after poll returns. Much like zig, when an async function returns, it immediately jumps to the awaiting function and continues.
+
+
 
 ```assembly
 core::pin::Pin<&mut T>::map_unchecked_mut:
@@ -129,6 +133,8 @@ alloc::boxed::Box<T,A>::into_pin:
         sub     rsp, 56
         mov     r14, rdi
         movzx   eax, byte ptr [rdi]
+
+        # Look up in the jump table where the function should return.
         lea     rcx, [rip + .LJTI11_0]
         movsxd  rax, dword ptr [rcx + 4*rax]
         add     rax, rcx
@@ -143,6 +149,8 @@ alloc::boxed::Box<T,A>::into_pin:
         mov     ebx, eax
         mov     al, 3
         test    bl, 1
+
+        # If the poll function returns `Poll::Ready`, then continue execution following the await.
         jne     .LBB11_5
         lea     rax, [rip + .L__unnamed_1]
         lea     rdi, [rsp + 8]
@@ -345,3 +353,27 @@ From the rust source code, async is implemented in terms of generators (internal
     pub(super) fn make_async_expr(
         ...
 ```
+
+and, later, we can see
+
+```rust
+// compiler/rustc_ast_lowering/src/expr.rs
+    /// Desugar `<expr>.await` into:
+    /// ```rust
+    /// match ::std::future::IntoFuture::into_future(<expr>) {
+    ///     mut pinned => loop {
+    ///         match unsafe { ::std::future::Future::poll(
+    ///             <::std::pin::Pin>::new_unchecked(&mut pinned),
+    ///             ::std::future::get_context(task_context),
+    ///         ) } {
+    ///             ::std::task::Poll::Ready(result) => break result,
+    ///             ::std::task::Poll::Pending => {}
+    ///         }
+    ///         task_context = yield ();
+    ///     }
+    /// }
+    /// ```
+    fn lower_expr_await(&mut self, await_span: Span, expr: &Expr) -> hir::ExprKind<'hir> {
+```
+
+__Lowering__ is a term that appears in the rust compiler and generally it means taking higher-level constructs and translating them to lower level constructs. In the rust source code, `hir` appears to stand for all the language's possible features and tokens, and `mir` appears to stand for 'middle' representation, i.e. right before low level IR or LLVM IR.
