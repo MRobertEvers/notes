@@ -395,9 +395,35 @@ __rustc_debug_gdb_scripts_section__:
         .asciz  "\001gdb_load_rust_pretty_printers.py"
 ```
 
-Finally, lets implement this in C, trying to keep to the spirit of the assembly, and note the differences.
+Finally, lets implement this in C, trying to keep to the spirit of the assembly, and note the differences. Now is a good time to note, however, that C doesn't have references. So passing by pointer or by copy is the closest we can get. The following assembly lines load the actual address of `bb` and the vtable.
 
-Note that rust automatically includes the drop_in_place function in the vtable. I'm not sure what this does. I'm going to ignore it in the C implementation.
+```
+# Load address of bb into rdi
+lea     rdi, [rip + example::bb]
+
+# Load address of vtable into rsi
+lea     rsi, [rip + .L__unnamed_1]
+```
+
+In C, we have to pass by pointer, and dereference those pointers in the function. Which, in unoptimized assembly, is two instructions.
+
+```
+# In the C ABI, rdi is the first argument, rsi is the second.
+mov     QWORD PTR [rbp-8], rdi
+mov     QWORD PTR [rbp-16], rsi
+
+# Dereference second argument, this is the vtable.
+mov     rax, QWORD PTR [rbp-16]
+mov     rdx, QWORD PTR [rax]
+
+# Simply copy the first argument, since we pass a pointer into the a_func anyway.
+mov     rax, QWORD PTR [rbp-8]
+mov     rdi, rax
+call    rdx
+```
+
+
+Note that rust automatically includes the drop_in_place function in the vtable. This is part of Rust's Drop attribute. I'm going to ignore it in the C implementation.
 
 ```c
 // Compiler only known type. The best way C can represent the Trait AFunc.
@@ -767,7 +793,54 @@ vtable for B:
         .quad   AFunc::a_func()
 ```
 
-### Override Virtual Functions
+Additionally, if we added modified `B` to have it's own virtual function like so,
+
+```cpp
+class B : public XFunc, public YFunc, public AFunc {
+public:
+    virtual int b_func() {return 6;}
+};
+```
+
+The vtable for `B` simply adds `.quad   B::b_func()` after the first inherited parent's virtual functions.
+
+```
+vtable for B:
+        .quad   0  # top_offset for XBVtable (used in RTTI, but still included even if RTTI is disabled)
+        .quad   0  # ptr to RTTI which is disabled
+        .quad   XFunc::x_func()  # start of vtable pointers
+        .quad   B::b_func()
+        .quad   -16
+        .quad   0
+        .quad   YFunc::y_func()
+        .quad   -32
+        .quad   0
+        .quad   AFunc::a_func()
+```
+
+This makes sense. A pointer `B*` that points to `B` shouldn't need any adjustments when calling a function that accepts a `B*`. So the functions introduced by `B` are included with the functions in the first vtable.
+
+## Virtual function calls
+
+Another thing to look at is what happens when `B` overrides a method. Well, if it overrides a method in the first inherited parent, then the vtable for that function is just changed to the overriding method.
+
+If `B` overrides a method from a non-first parent, then we have a problem. We are putting all of the functions on `B` in the first vtable. But if we have a pointer, e.g. `Y*` like from above, then we need to also put that function into the `Y` vtable, like so 
+
+```
+vtable for B:
+        .quad   0  # top_offset for XBVtable (used in RTTI, but still included even if RTTI is disabled)
+        .quad   0  # ptr to RTTI which is disabled
+        .quad   XFunc::x_func()  # start of vtable pointers
+        .quad   B::y_func()
+        .quad   -16
+        .quad   0
+        .quad   B::y_func()
+        .quad   -32
+        .quad   0
+        .quad   AFunc::a_func()
+```
+
+But wait! What if we go even further and inherit from `B`?
 
 
 What is `non-virtual thunk to B::a_func():`? When `B` overrides one of its non-intial parent classes. Gcc introduces a non-virtual thunk that simply redirects to the (`FirstParent` + `B`) vtable.
@@ -948,6 +1021,146 @@ Here's where this gets hairy. What if we inherit from multiple class that aren't
 
 
 ## Notes
+
+### Compiler Layout Dumps
+
+You can tell clang to dump the virtual table layout via `-Xclang -fdump-vtable-layouts`, which produces something like
+
+For this input:
+
+```
+class AFunc {
+    int my_a = 2;
+public:
+    virtual int a_func() {return 0;};
+};
+
+class XFunc {
+    int my_x = 0;
+public:
+    virtual int x_func() {return 3;}
+};
+
+
+class B : public XFunc, public AFunc {
+        int my_b = 3;
+public:
+    virtual int a_func() {return 5;}
+    virtual int b_func() {return 5;}
+};
+
+B bb;
+
+int main() {
+    AFunc* bba = &bb;
+
+    return bba->a_func();
+}
+```
+
+Gives
+
+```
+Vtable for 'B' (8 entries).
+   0 | offset_to_top (0)
+   1 | B RTTI
+       -- (B, 0) vtable address --
+       -- (XFunc, 0) vtable address --
+   2 | int XFunc::x_func()
+   3 | int B::a_func()
+   4 | int B::b_func()
+   5 | offset_to_top (-16)
+   6 | B RTTI
+       -- (AFunc, 16) vtable address --
+   7 | int B::a_func()
+       [this adjustment: -16 non-virtual]
+
+Thunks for 'int B::a_func()' (1 entry).
+   0 | this adjustment: -16 non-virtual
+
+VTable indices for 'B' (2 entries).
+   1 | int B::a_func()
+   2 | int B::b_func()
+
+Vtable for 'AFunc' (3 entries).
+   0 | offset_to_top (0)
+   1 | AFunc RTTI
+       -- (AFunc, 0) vtable address --
+   2 | int AFunc::a_func()
+
+VTable indices for 'AFunc' (1 entries).
+   0 | int AFunc::a_func()
+
+Vtable for 'XFunc' (3 entries).
+   0 | offset_to_top (0)
+   1 | XFunc RTTI
+       -- (XFunc, 0) vtable address --
+   2 | int XFunc::x_func()
+
+VTable indices for 'XFunc' (1 entries).
+   0 | int XFunc::x_func()
+
+Compiler returned: 0
+
+```
+
+You can tell MSVC to do something similar. `/d1reportAllClassLayout`, however this produces a lot of output. Perhaps better to use the single class version. Note however that you can only specify one class. `/GR-` is MSVC for `-fno-rtti`.
+```
+/d1reportSingleClassLayoutXFunc
+/d1reportSingleClassLayoutAFunc
+/d1reportSingleClassLayoutXB
+```
+
+The nice thing about MSVC is that it even includes the class layout.
+
+```
+/GR- /d1reportSingleClassLayoutB
+
+example.cpp
+
+class _s__RTTIBaseClassDescriptor	size(28):
+	+---
+ 0	| pTypeDescriptor
+ 4	| numContainedBases
+ 8	| _PMD where
+20	| attributes
+24	| pClassDescriptor
+	+---
+
+class _s__RTTIBaseClassArray	size(1):
+	+---
+ 0	| arrayOfBaseClassDescriptors
+	+---
+
+class B	size(20):
+	+---
+ 0	| +--- (base class XFunc)
+ 0	| | {vfptr}
+ 4	| | my_x
+	| +---
+ 8	| +--- (base class AFunc)
+ 8	| | {vfptr}
+12	| | my_a
+	| +---
+16	| my_b
+	+---
+
+B::$vftable@XFunc@:
+	| &B_meta
+	|  0
+ 0	| &XFunc::x_func 
+ 1	| &B::b_func 
+
+B::$vftable@AFunc@:
+	| -8
+ 0	| &B::a_func 
+
+B::a_func this adjustor: 8
+B::b_func this adjustor: 0
+Compiler returned: 0
+```
+
+## Misc
 
 The `top_pointer` in the vtables produced by GCC seem to only be needed for dynamic_cast?? I can't think of a reason why that would be necessary otherwise. What's weird is that it's present even when `-fno-rtti` is specified, which means dynamic cast won't work anyway??
 
