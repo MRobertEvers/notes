@@ -4,6 +4,42 @@ Build with `cargo build`.
 
 Run with `./target/debug/async_rust`. Compiler explorer requires `--edition=2021`.
 
+## Building Advanced
+
+You can see rustc's default target with `rustc --print cfg`.
+
+You can see available targets with `rustc --print --target-list`.
+
+On mac M1, this is my config.
+
+```
+debug_assertions
+target_arch="aarch64"
+target_endian="little"
+target_env=""
+target_family="unix"
+target_os="macos"
+target_pointer_width="64"
+target_vendor="apple"
+unix
+```
+
+The target is `<arch>-<vendor>-<os>-<env>`
+
+So, `aarch64-apple-darwin` (macos is darwin.)
+
+Rust uses `rustc -vV`. From the rustc source code `https://github.com/rust-lang/cargo/blob/1dae5acb7d27568ca30fe2da49b4a447d7b78e90/src/cargo/util/rustc.rs#L50-L68`.
+
+```
+rustc 1.56.1
+binary: rustc
+commit-hash: unknown
+commit-date: unknown
+host: aarch64-apple-darwin
+release: 1.56.1
+LLVM version: 13.0.0
+```
+
 ## Discussion
 
 Async rust takes a different route than, say, zig. Async functions in rust return an `impl Future`, which has one function
