@@ -2,16 +2,34 @@
 
 Build with `cargo build`.
 
-Run with `./target/debug/async_rust`.
+Run with `./target/debug/async_rust`. Compiler explorer requires `--edition=2021`.
+
+## Discussion
+
+Async rust takes a different route than, say, zig. Async functions in rust return an `impl Future`, which has one function
+
+```rust
+fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output>
+```
+
+On the generated functions `poll` causes the future to execute as much as possible until it reaches a `.await` that returns `Poll::Pending`. It runs through all `.await`s calling `poll` and continuing if they return `Poll::Ready`. That is, `.await` produces a `poll` call.
+
+See [assembly analysis](./assembly_analysis.md).
 
 ## Example
 
 With `-C opt-level=z`, the following produces smallish assembly.
 
+```
+hello, world!
+Completed on second poll!
+```
+
 ```rust
 use core::ptr::null;
-use std::task::Context;
+use std::task::{Context, Poll};
 use std::future::{Future};
+use std::pin::Pin;
 use core::task::{RawWaker, RawWakerVTable, Waker};
 
 unsafe fn noop_clone(_data: *const ()) -> RawWaker {
@@ -31,7 +49,29 @@ pub fn noop_waker() -> Waker {
     unsafe { Waker::from_raw(noop_raw_waker()) }
 }
 
+pub struct DummyFuture {
+    count: u8
+}
+
+impl Future for DummyFuture {
+    type Output = u8;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.count == 1 {
+            Poll::Ready(11)
+        } else {
+            Pin::into_inner(self).count += 1;
+            Poll::Pending
+        }
+    }
+}
+
+
 async fn hello_world() {
+    let fut: DummyFuture = DummyFuture {
+        count: 0
+    };
+    fut.await;
     println!("hello, world!");
 }
 
@@ -40,8 +80,13 @@ pub fn main() {
     let mut c: Context =  Context::from_waker(&waker);
     let mut future = Box::pin(hello_world()); 
 
-    let future_s = future.as_mut();
-    future_s.poll(&mut c);
+    if let Poll::Ready(res) = future.as_mut().poll(&mut c) {
+        println!("Completed on first poll!");
+    }
+
+    if let Poll::Ready(res2) = future.as_mut().poll(&mut c) {
+        println!("Completed on second poll!");
+    }
 }
 ```
 
